@@ -1,0 +1,123 @@
+name: BMAD Setup
+
+on:
+  push:
+    paths:
+      - ".github/workflows/bmad-setup.yml"
+
+permissions:
+  contents: write  # 🔥 Required for git push
+  
+jobs:
+  setup-bmad:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Use Node v22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install BMAD Fully Non-Interactive
+        run: |
+          sudo apt-get update && sudo apt-get install -y expect
+
+          expect << 'EOF'
+          spawn npx bmad-method@alpha install
+
+          # 1) Installation path (Press enter = default)
+          expect "Installation directory" 
+          send ".\r\r"
+
+          # 2) Install here? → Yes
+          expect "(Y/n)"
+          send "Y\r\r"
+
+          # 3) BMAD root (.bmad) (Press enter = default)
+          expect "root folder"
+          send "\r"
+
+          # 4) Username suggestion — Custom username
+          expect -re "call you.*"
+          sleep 1
+          send -- "Ghulam Saddani\r\r"
+
+          # 5) Chat Language
+          expect "Preferred Chat Language"
+          send "\r"
+
+          # 6) Docs Language
+          expect "Preferred Document Output Language"
+          send "\r"
+
+          # 7) Artifact folder
+          expect "AI Generated Artifacts"
+          send "\r"
+
+          # 8) Install docs? → Yes
+          expect "(Y/n)"
+          send "Y\r\r"
+          
+          ##### Module SELECTION #####
+          expect "default module Selection"
+          send "\r\r"
+          
+          ##### Enable Agents to Speak Out loud #####
+          expect "(y/n)"
+          send "n\r\r"
+          
+          ##### TOOL SELECTION #####
+          # Press 'a' = Select ALL tools
+          expect "Tool Selection"
+          send "a\r\r"
+
+          ##### CONTINUE INSTALL #####
+
+          # Project title → accept default
+          expect -re "title"
+          sleep 1
+          send -- "BMAD-Test\r\r"
+
+          # Experience level → choose Intermediate
+          expect "Beginner"
+          send "\r\r"   ;# down arrow → selects Intermediate
+
+          # Sprint artifacts
+          expect "Sprint Artifacts"
+          send "\r\r"
+
+          # Enable Test Architect
+          expect "(y/n)"
+          send "y\r\r"
+          
+          # Are you using playwright-utils
+          expect "(y/n)"
+          send "n\r\r"
+          
+          # Where would you like to install Codex CLI prompts
+          #default one
+          expect "(Global - Simple for single project)"
+          send "\r\r"
+
+          # Proceed with this installation option
+          expect "(y/n)"
+          send "y\r\r"
+          
+          # End
+          expect eof
+          EOF
+      # -------------------------------------------------------
+      # 🔥 AUTO-COMMIT BMAD DIRECTORIES BACK TO THE REPO
+      # -------------------------------------------------------
+      - name: Commit & Push BMAD output into repo
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+
+          # Add BMAD generated folders safely (exists only if created)
+          git add -A  # <-- commits ALL new BMAD files
+
+          git commit -m "BMAD auto-install artifacts" || echo "No BMAD changes to commit"
+          git push origin HEAD
